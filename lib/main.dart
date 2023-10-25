@@ -3,10 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:question_app/question.dart';
+import 'package:question_app/data/question.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
-// Enum ToastType { success, error, warning };
 
 enum ToastType { success, error, warning }
 
@@ -47,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late Box<Question> questionsBox;
   late FToast fToast;
   bool showQuestions = false;
+  TextEditingController importQuestionController = TextEditingController();
 
   @override
   void dispose() {
@@ -104,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     fToast.showToast(
       child: toast,
-      gravity: ToastGravity.TOP,
+      gravity: ToastGravity.BOTTOM,
       toastDuration: const Duration(seconds: 2),
     );
   }
@@ -127,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Colors.transparent,
                 ),
                 child: Text(
-                  "ICE BREAKER",
+                  "Questions Book",
                   style: TextStyle(
                     fontSize: 30,
                     color: Colors.deepPurple,
@@ -154,6 +153,102 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
               ListTile(
+                title: const Text("Importer des Questions"),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (context) {
+                      return SingleChildScrollView(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).viewInsets.bottom,
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.only(
+                                  top: 20,
+                                  left: 30,
+                                  right: 30,
+                                  bottom:
+                                      MediaQuery.of(context).viewPadding.bottom,
+                                ),
+                                height:
+                                    MediaQuery.of(context).size.height * 0.5,
+                                width: MediaQuery.of(context).size.width,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "Colle ta liste de question ici !",
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .displaySmall,
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        child: TextField(
+                                          controller: importQuestionController,
+                                          maxLines: 10,
+                                          decoration: const InputDecoration(
+                                            border: OutlineInputBorder(),
+                                            labelText: 'Question',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        String questions =
+                                            importQuestionController.text;
+                                        if (questions.isEmpty) {
+                                          showToast(
+                                              "Ajouter au moins une question",
+                                              ToastType.error);
+                                          return;
+                                        }
+
+                                        // split questions by line
+
+                                        List<String> questionsList =
+                                            questions.split("\n");
+
+                                        for (String question in questionsList) {
+                                          if (question.isEmpty) {
+                                            continue;
+                                          }
+                                          await questionsBox
+                                              .add(Question(content: question));
+                                        }
+
+                                        setState(() {
+                                          importQuestionController.clear();
+                                        });
+
+                                        showToast(
+                                            "Questions Importées avec succès !",
+                                            ToastType.success);
+
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                      },
+                                      child: const Text("Importer"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+              ListTile(
                 title: const Text("Supprimer toutes les Questions"),
                 onTap: () {
                   questionsBox.clear();
@@ -175,7 +270,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   Navigator.pop(context);
                 },
               ),
-              // add switch to show questions
               SwitchListTile(
                 title: const Text("Afficher les Questions"),
                 value: showQuestions,
@@ -191,7 +285,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("ICE BREAKER"),
+        title: const Text("Questions book"),
       ),
       body: SafeArea(
         child: Column(
@@ -207,10 +301,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     Question question = questionsBox.getAt(index)!;
                     return ListTile(
                       title: Text(question.content),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.favorite_border),
-                        onPressed: () {},
-                      ),
                     );
                   },
                 ),
